@@ -20,6 +20,9 @@ jobs:
         with:
           gradle-version: 8.14.3
 
+      - name: Run unit tests
+        run: gradle --no-daemon testDebugUnitTest
+
       - name: Build debug APK
         run: gradle --no-daemon assembleDebug
 
@@ -27,3 +30,8 @@ jobs:
         with:
           name: buckwheat-debug-apk
           path: app/build/outputs/apk/debug/*.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: room-schemas
+          path: app/schemas/
