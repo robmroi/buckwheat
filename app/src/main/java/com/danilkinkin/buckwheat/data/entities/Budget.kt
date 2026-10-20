@@ -39,7 +39,7 @@ data class Budget(
 
     @ColumnInfo(name = "carryOver")
     val carryOver: Boolean = false,
-) {
-    val isRecurring: Boolean
-        get() = period != BudgetPeriod.ONE_OFF
-}
+)
+
+val Budget.isRecurring: Boolean
+    get() = period != BudgetPeriod.ONE_OFF
