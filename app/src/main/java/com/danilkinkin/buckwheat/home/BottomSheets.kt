@@ -9,6 +9,8 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.danilkinkin.buckwheat.base.BottomSheetWrapper
+import com.danilkinkin.buckwheat.budgets.BUDGETS_SHEET
+import com.danilkinkin.buckwheat.budgets.Budgets
 import com.danilkinkin.buckwheat.data.AppViewModel
 import com.danilkinkin.buckwheat.data.PathState
 import com.danilkinkin.buckwheat.data.SpendsViewModel
@@ -45,19 +47,45 @@ fun BottomSheets(
 
     val requireSetBudget by spendsViewModel.requireSetBudget.observeAsState(false)
     val periodFinished by spendsViewModel.periodFinished.observeAsState(false)
+    val requireConfigureBudget by spendsViewModel.requireConfigureBudget.observeAsState(false)
 
     BottomSheetWrapper(
         name = WALLET_SHEET,
         cancelable = !requireSetBudget && !periodFinished,
     ) { state ->
         Wallet(
-            forceChange = periodFinished || requireSetBudget,
+            forceChange = periodFinished || requireSetBudget || requireConfigureBudget,
             activityResultRegistryOwner = activityResultRegistryOwner,
             onClose = {
                 coroutineScope.launch {
                     state.hide()
                 }
             }
+        )
+    }
+
+    BottomSheetWrapper(
+        name = BUDGETS_SHEET,
+    ) { state ->
+        Budgets(
+            onClose = {
+                coroutineScope.launch {
+                    state.hide()
+                }
+            }
+        )
+    }
+
+    BottomSheetWrapper(
+        name = REPEAT_CHOOSER_SHEET,
+    ) { state ->
+        RepeatChooser(
+            selected = state.args["repeat"] as RepeatOption? ?: RepeatOption.NEVER,
+            onSelect = {
+                coroutineScope.launch {
+                    state.hide(mapOf("repeat" to it))
+                }
+            },
         )
     }
 

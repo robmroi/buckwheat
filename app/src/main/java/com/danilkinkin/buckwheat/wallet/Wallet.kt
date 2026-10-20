@@ -60,13 +60,32 @@ fun Wallet(
     val currency by spendsViewModel.currency.observeAsState()
     val spends by spendsViewModel.spends.observeAsState()
     val restedBudgetDistributionMethod by spendsViewModel.restedBudgetDistributionMethod.observeAsState()
+    val activeBudget by spendsViewModel.activeBudget.observeAsState()
+    val pastPeriods by spendsViewModel.pastPeriods.observeAsState(emptyList())
+
+    val savedRepeat = activeBudget?.let { RepeatOption.of(it) } ?: RepeatOption.NEVER
+    val savedCarryOver = activeBudget?.carryOver ?: false
+    var repeat by remember(savedRepeat) { mutableStateOf(savedRepeat) }
+    var carryOver by remember(savedCarryOver) { mutableStateOf(savedCarryOver) }
+    // A running recurring period is edited in place, everything else starts a new period
+    val editRunningPeriod = spends?.isNotEmpty() == true && !forceChange && repeat == savedRepeat
+
+    LaunchedEffect(forceChange, repeat) {
+        if (forceChange && repeat.isRecurring) {
+            dateToValue.value = periodBounds(
+                repeat.period,
+                repeat.periodDays,
+                java.time.LocalDate.now(),
+            ).second.toDate()
+        }
+    }
 
     val restBudget =
         (budgetCache - spent - spentFromDailyBudget)
 
     val openConfirmFinishBudgetDialog = remember { mutableStateOf(false) }
 
-    if (spends === null) return
+    if (spends === null || activeBudget === null) return
 
     val navigationBarHeight = LocalWindowInsets.current.calculateBottomPadding()
         .coerceAtLeast(16.dp)
@@ -74,6 +93,8 @@ fun Wallet(
     val isChange = (
             budgetCache != budget
                     || dateToValue.value != finishPeriodDate
+                    || repeat != savedRepeat
+                    || carryOver != savedCarryOver
             )
 
     var isEdit by remember(startPeriodDate, finishPeriodDate, forceChange) {
@@ -179,10 +200,15 @@ fun Wallet(
                     if (targetIsEdit) {
                         BudgetConstructor(
                             forceChange = forceChange,
+                            initialAmount = if (savedRepeat.isRecurring) activeBudget!!.amount else null,
+                            repeat = repeat,
+                            carryOver = carryOver,
                             onChange = { newBudget, finishDate ->
                                 budgetCache = newBudget
                                 dateToValue.value = finishDate
-                            }
+                            },
+                            onRepeatChange = { repeat = it },
+                            onCarryOverChange = { carryOver = it },
                         )
                     } else {
                         BudgetSummary(
@@ -247,7 +273,7 @@ fun Wallet(
                     ),
                 ) {
                     Column {
-                        if (spends!!.isNotEmpty()) {
+                        if (spends!!.isNotEmpty() || pastPeriods.isNotEmpty()) {
                             ButtonRow(
                                 icon = painterResource(R.drawable.ic_analytics),
                                 text = stringResource(R.string.view_analytics),
@@ -307,7 +333,19 @@ fun Wallet(
                             onClick = {
                                 spendsViewModel.changeDisplayCurrency(currency!!)
 
-                                if (spends!!.isNotEmpty() && !forceChange) {
+                                if (repeat.isRecurring) {
+                                    if (editRunningPeriod && savedRepeat.isRecurring) {
+                                        spendsViewModel.changeRecurringBudget(budgetCache, carryOver)
+                                    } else {
+                                        spendsViewModel.setRecurringBudget(
+                                            budgetCache,
+                                            repeat.period,
+                                            repeat.periodDays,
+                                            carryOver,
+                                        )
+                                        appViewModel.activateTutorial(TUTORS.OPEN_WALLET)
+                                    }
+                                } else if (spends!!.isNotEmpty() && !forceChange && !savedRepeat.isRecurring) {
                                     spendsViewModel.changeBudget(budgetCache, dateToValue.value!!)
                                 } else {
                                     spendsViewModel.setBudget(budgetCache, dateToValue.value!!)
@@ -321,12 +359,11 @@ fun Wallet(
                                 .fillMaxWidth()
                                 .heightIn(60.dp)
                                 .padding(horizontal = 16.dp),
-                            enabled = dateToValue.value !== null && countDaysToToday(dateToValue.value!!) > 0 && budgetCache > BigDecimal(
-                                0
-                            )
+                            enabled = (repeat.isRecurring || (dateToValue.value !== null && countDaysToToday(dateToValue.value!!) > 0))
+                                    && budgetCache > BigDecimal(0)
                         ) {
                             Text(
-                                text = if (spends!!.isNotEmpty() && !forceChange) {
+                                text = if (spends!!.isNotEmpty() && !forceChange && (editRunningPeriod || !repeat.isRecurring)) {
                                     stringResource(R.string.change_budget)
                                 } else {
                                     stringResource(R.string.apply)

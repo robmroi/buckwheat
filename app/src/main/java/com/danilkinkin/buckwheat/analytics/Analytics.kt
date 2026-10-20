@@ -64,6 +64,7 @@ fun Analytics(
     val scrollState = rememberScrollState()
 
     val finishPeriodActualDate by spendsViewModel.finishPeriodActualDate.observeAsState(null)
+    val pastPeriods by spendsViewModel.pastPeriods.observeAsState(emptyList())
 
     // Need to hide calendar after migration to transactions,
     // because after migration can't restore some transactions like INCOME & SET_DAILY_BUDGET
@@ -104,6 +105,15 @@ fun Analytics(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         if (spends.isNotEmpty()) {
+                            PaceChartCard(
+                                budget = wholeBudget,
+                                spends = spends,
+                                startDate = spendsViewModel.startPeriodDate.value!!,
+                                finishDate = finishPeriodActualDate
+                                    ?: spendsViewModel.finishPeriodDate.value!!,
+                                currency = spendsViewModel.currency.value!!,
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -165,6 +175,13 @@ fun Analytics(
                             CategoriesChartCard(
                                 modifier = Modifier.fillMaxWidth(),
                                 spends = spends,
+                                currency = spendsViewModel.currency.value!!,
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                        if (pastPeriods.isNotEmpty()) {
+                            PastPeriodsCard(
+                                periods = pastPeriods,
                                 currency = spendsViewModel.currency.value!!,
                             )
                             Spacer(modifier = Modifier.height(16.dp))
