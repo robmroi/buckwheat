@@ -25,6 +25,8 @@ android {
 
     buildTypes {
         getByName("debug") {
+            // Installs next to the store version of Buckwheat
+            applicationIdSuffix = ".debug"
             signingConfig = signingConfigs.getByName("debug")
         }
 
