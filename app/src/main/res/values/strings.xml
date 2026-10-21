@@ -160,7 +160,8 @@
   <string name="repeat_never">Doesn\'t repeat</string>
   <string name="repeat_weekly">Every week</string>
   <string name="repeat_two_weeks">Every 2 weeks</string>
-  <string name="repeat_monthly">Every month</string>
+  <string name="repeat_calendar_month">Every month, 1st to last day</string>
+  <string name="repeat_monthly">Every month, starting today</string>
   <string name="carry_over_label">Carry over leftovers</string>
   <string name="carry_over_description">What is left (or overspent) at the end of a period moves to the next one</string>
   <string name="current_period_label">This period: %1$s – %2$s</string>

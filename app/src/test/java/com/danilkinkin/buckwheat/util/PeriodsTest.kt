@@ -30,6 +30,28 @@ class PeriodsTest {
     }
 
     @Test
+    fun calendarMonthCoversTheWholeMonthEvenWhenSetUpMidMonth() {
+        assertEquals(
+            LocalDate.of(2026, 10, 1) to LocalDate.of(2026, 10, 31),
+            periodBounds(BudgetPeriod.CALENDAR_MONTH, 0, LocalDate.of(2026, 10, 21)),
+        )
+        assertEquals(
+            LocalDate.of(2028, 2, 1) to LocalDate.of(2028, 2, 29),
+            periodBounds(BudgetPeriod.CALENDAR_MONTH, 0, LocalDate.of(2028, 2, 29)),
+        )
+    }
+
+    @Test
+    fun calendarMonthFollowedByTheNextOne() {
+        val (_, finish) = periodBounds(BudgetPeriod.CALENDAR_MONTH, 0, LocalDate.of(2026, 12, 15))
+
+        assertEquals(
+            LocalDate.of(2027, 1, 1) to LocalDate.of(2027, 1, 31),
+            periodBounds(BudgetPeriod.CALENDAR_MONTH, 0, finish.plusDays(1)),
+        )
+    }
+
+    @Test
     fun everyNDaysPeriod() {
         val start = LocalDate.of(2026, 10, 20)
 

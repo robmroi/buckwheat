@@ -11,7 +11,10 @@ enum class BudgetPeriod {
     // Classic Buckwheat budget: an amount until a chosen finish date
     ONE_OFF,
     WEEKLY,
+    // Starts on the day the budget is set up
     MONTHLY,
+    // From the first to the last day of a calendar month
+    CALENDAR_MONTH,
     EVERY_N_DAYS,
 }
 

@@ -28,6 +28,7 @@ enum class RepeatOption(val period: BudgetPeriod, val periodDays: Int) {
     NEVER(BudgetPeriod.ONE_OFF, 0),
     WEEKLY(BudgetPeriod.WEEKLY, 7),
     TWO_WEEKS(BudgetPeriod.EVERY_N_DAYS, 14),
+    CALENDAR_MONTH(BudgetPeriod.CALENDAR_MONTH, 0),
     MONTHLY(BudgetPeriod.MONTHLY, 0);
 
     val isRecurring: Boolean
@@ -38,6 +39,7 @@ enum class RepeatOption(val period: BudgetPeriod, val periodDays: Int) {
             BudgetPeriod.ONE_OFF -> NEVER
             BudgetPeriod.WEEKLY -> WEEKLY
             BudgetPeriod.MONTHLY -> MONTHLY
+            BudgetPeriod.CALENDAR_MONTH -> CALENDAR_MONTH
             BudgetPeriod.EVERY_N_DAYS -> TWO_WEEKS
         }
     }
@@ -49,6 +51,7 @@ fun RepeatOption.label() = stringResource(
         RepeatOption.NEVER -> R.string.repeat_never
         RepeatOption.WEEKLY -> R.string.repeat_weekly
         RepeatOption.TWO_WEEKS -> R.string.repeat_two_weeks
+        RepeatOption.CALENDAR_MONTH -> R.string.repeat_calendar_month
         RepeatOption.MONTHLY -> R.string.repeat_monthly
     }
 )

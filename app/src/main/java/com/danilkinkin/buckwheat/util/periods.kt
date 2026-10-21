@@ -3,15 +3,22 @@ package com.danilkinkin.buckwheat.util
 import com.danilkinkin.buckwheat.data.entities.BudgetPeriod
 import java.time.LocalDate
 
-// Returns the first and last day of a recurring period that starts at `from`.
-// Periods are anchored on the day the budget was set up, so the first period
+// Returns the first and last day of a recurring period that contains `from`.
+// Most periods are anchored on the day the budget was set up, so the first period
 // is always full length (e.g. a weekly budget set up on Thursday runs Thu-Wed).
+// A calendar month always covers the whole month, even if it is set up mid-month.
 fun periodBounds(period: BudgetPeriod, periodDays: Int, from: LocalDate): Pair<LocalDate, LocalDate> {
+    if (period == BudgetPeriod.CALENDAR_MONTH) {
+        val start = from.withDayOfMonth(1)
+
+        return start to start.plusMonths(1).minusDays(1)
+    }
+
     val finish = when (period) {
         BudgetPeriod.WEEKLY -> from.plusDays(6)
         BudgetPeriod.MONTHLY -> from.plusMonths(1).minusDays(1)
         BudgetPeriod.EVERY_N_DAYS -> from.plusDays(periodDays.coerceAtLeast(1).toLong() - 1)
-        BudgetPeriod.ONE_OFF -> from
+        BudgetPeriod.ONE_OFF, BudgetPeriod.CALENDAR_MONTH -> from
     }
 
     return from to finish

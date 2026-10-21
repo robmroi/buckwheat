@@ -273,7 +273,12 @@ fun BudgetConstructor(
                 text = stringResource(
                     R.string.current_period_label,
                     prettyDate(
-                        if (forceChange) Date() else startPeriodDate,
+                        if (forceChange) {
+                            periodBounds(repeat.period, repeat.periodDays, LocalDate.now())
+                                .first.toDate()
+                        } else {
+                            startPeriodDate
+                        },
                         showTime = false,
                         forceShowDate = true,
                     ),
