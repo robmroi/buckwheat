@@ -4,6 +4,8 @@
 
     <uses-permission android:name="android.permission.WAKE_LOCK" tools:node="remove" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     
     <application
         android:name=".Application"
@@ -16,6 +18,14 @@
         android:theme="@style/Theme.Buckwheat.Starting"
         android:enableOnBackInvokedCallback="true"
         tools:targetApi="36">
+        <receiver
+            android:name=".reminder.OverPaceReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
         <receiver
             android:name=".widget.extend.ExtendWidgetReceiver"
             android:label="@string/app_widget_extend_name"

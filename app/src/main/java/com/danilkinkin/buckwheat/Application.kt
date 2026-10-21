@@ -3,6 +3,7 @@ package com.danilkinkin.buckwheat
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
+import com.danilkinkin.buckwheat.reminder.OverPaceReminder
 import com.danilkinkin.buckwheat.widget.extend.ExtendWidgetReceiver
 import com.danilkinkin.buckwheat.widget.minimal.MinimalWidgetReceiver
 import dagger.hilt.android.HiltAndroidApp
@@ -11,6 +12,8 @@ import dagger.hilt.android.HiltAndroidApp
 class Application : Application() {
     override fun onCreate() {
         super.onCreate()
+
+        OverPaceReminder.restore(this)
 
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {

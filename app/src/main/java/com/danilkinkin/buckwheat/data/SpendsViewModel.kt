@@ -6,7 +6,10 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import com.danilkinkin.buckwheat.data.entities.Budget
+import com.danilkinkin.buckwheat.data.entities.BudgetPeriod
 import com.danilkinkin.buckwheat.data.entities.Transaction
+import com.danilkinkin.buckwheat.di.PeriodSummary
 import com.danilkinkin.buckwheat.di.SpendsRepository
 import com.danilkinkin.buckwheat.util.countDaysToToday
 import com.danilkinkin.buckwheat.util.isToday
@@ -36,6 +39,10 @@ class SpendsViewModel @Inject constructor(
     var finishPeriodDate = spendsRepository.getFinishPeriodDate().asLiveData()
     var finishPeriodActualDate = spendsRepository.getFinishPeriodActualDate().asLiveData()
     var lastChangeDailyBudgetDate = spendsRepository.getLastChangeDailyBudgetDate().asLiveData()
+    var budgets = spendsRepository.getBudgets().asLiveData()
+    var activeBudget = spendsRepository.getActiveBudget().asLiveData()
+    var restBudgets = spendsRepository.getRestBudgets().asLiveData()
+    var pastPeriods = spendsRepository.getPastPeriods().asLiveData()
 
     var currency = spendsRepository.getCurrency().asLiveData()
     var restedBudgetDistributionMethod =
@@ -46,6 +53,12 @@ class SpendsViewModel @Inject constructor(
     var requireSetBudget = MutableLiveData(false)
     var periodFinished = MutableLiveData(false)
     var lastRemovedTransaction: MutableLiveData<Transaction> = MutableLiveData()
+
+    // A just created budget that still needs an amount
+    var requireConfigureBudget = MutableLiveData(false)
+
+    // Summary of a recurring period that just finished
+    var finishedPeriodSummary: MutableLiveData<PeriodSummary?> = MutableLiveData(null)
 
     init {
         runChangeDayAction()
@@ -59,6 +72,7 @@ class SpendsViewModel @Inject constructor(
             spendsRepository.setBudget(newBudget, newFinishDate)
 
             requireSetBudget.value = false
+            requireConfigureBudget.value = false
             periodFinished.value = false
         }
     }
@@ -79,6 +93,73 @@ class SpendsViewModel @Inject constructor(
             requireSetBudget.value = false
             periodFinished.value = true
         }
+    }
+
+    fun setRecurringBudget(
+        amount: BigDecimal,
+        period: BudgetPeriod,
+        periodDays: Int,
+        carryOver: Boolean,
+    ) {
+        viewModelScope.launch {
+            spendsRepository.setRecurringBudget(amount, period, periodDays, carryOver)
+
+            requireSetBudget.value = false
+            requireConfigureBudget.value = false
+            periodFinished.value = false
+        }
+    }
+
+    fun changeRecurringBudget(amount: BigDecimal, carryOver: Boolean) {
+        viewModelScope.launch {
+            spendsRepository.changeRecurringBudget(amount, carryOver)
+        }
+    }
+
+    // Multiple budgets
+
+    fun switchBudget(budgetId: Int) {
+        viewModelScope.launch {
+            spendsRepository.switchBudget(budgetId)
+
+            resetBudgetFlags()
+            runChangeDayAction()
+        }
+    }
+
+    fun createBudget(name: String, emoji: String) {
+        viewModelScope.launch {
+            spendsRepository.createBudget(name, emoji)
+
+            resetBudgetFlags()
+            requireConfigureBudget.value = true
+        }
+    }
+
+    fun updateBudgetInfo(budget: Budget) {
+        viewModelScope.launch {
+            spendsRepository.updateBudgetInfo(budget)
+        }
+    }
+
+    fun deleteBudget(budgetId: Int) {
+        viewModelScope.launch {
+            spendsRepository.deleteBudget(budgetId)
+
+            resetBudgetFlags()
+            runChangeDayAction()
+        }
+    }
+
+    fun dismissFinishedPeriodSummary() {
+        finishedPeriodSummary.value = null
+    }
+
+    private fun resetBudgetFlags() {
+        requireSetBudget.value = false
+        requireConfigureBudget.value = false
+        requireDistributionRestedBudget.value = false
+        periodFinished.value = false
     }
 
     fun setDailyBudget(newDailyBudget: BigDecimal) {
@@ -148,6 +229,10 @@ class SpendsViewModel @Inject constructor(
     // Background tasks
     private fun runChangeDayAction() {
         viewModelScope.launch {
+            spendsRepository.startNextPeriodIfNeeded()?.let {
+                finishedPeriodSummary.value = it
+            }
+
             val lastChangeDailyBudgetDate = spendsRepository.getLastChangeDailyBudgetDate().first()
             val finishPeriodDate = spendsRepository.getFinishPeriodDate().first()
             val finishPeriodActualDate = spendsRepository.getFinishPeriodActualDate().first()
@@ -202,7 +287,11 @@ class SpendsViewModel @Inject constructor(
                 }
 
                 lastChangeDailyBudgetDate === null -> {
-                    requireSetBudget.value = true
+                    if (spendsRepository.hasAnyConfiguredBudget()) {
+                        requireConfigureBudget.value = true
+                    } else {
+                        requireSetBudget.value = true
+                    }
                 }
 
                 finishTimeReached -> {

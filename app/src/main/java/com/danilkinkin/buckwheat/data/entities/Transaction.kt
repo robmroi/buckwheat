@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 import java.math.BigDecimal
 import java.util.*
 
+
 enum class TransactionType {
     SET_DAILY_BUDGET,
     INCOME,
@@ -25,6 +26,13 @@ data class Transaction(
 
     @ColumnInfo(name = "comment", defaultValue = "")
     val comment: String = "",
+
+    @ColumnInfo(name = "budgetId", defaultValue = "1")
+    val budgetId: Int = DEFAULT_BUDGET_ID,
+
+    // Identifies the budget period the transaction belongs to (see SpendsRepository)
+    @ColumnInfo(name = "periodKey", defaultValue = "0")
+    val periodKey: Long = 0,
 ) {
     @PrimaryKey(autoGenerate = true) var uid: Int = 0
 }

@@ -37,6 +37,7 @@ class SpendsRepositoryTest {
             context = composeTestRule.activity,
             FakeTransactionDao(),
             currentDateUseCase,
+            FakeBudgetDao(),
         )
     }
 

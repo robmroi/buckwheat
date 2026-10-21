@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.danilkinkin.buckwheat.R
 import com.danilkinkin.buckwheat.base.ButtonRow
+import com.danilkinkin.buckwheat.base.TextRow
 import com.danilkinkin.buckwheat.data.AppViewModel
 import com.danilkinkin.buckwheat.data.ExtendCurrency
 import com.danilkinkin.buckwheat.data.PathState
@@ -48,9 +49,14 @@ import java.util.*
 @Composable
 fun BudgetConstructor(
     forceChange: Boolean = false,
+    initialAmount: BigDecimal? = null,
+    repeat: RepeatOption = RepeatOption.NEVER,
+    carryOver: Boolean = false,
     appViewModel: AppViewModel = hiltViewModel(),
     spendsViewModel: SpendsViewModel = hiltViewModel(),
     onChange: (budget: BigDecimal, finishDate: Date?) -> Unit = { _, _ -> },
+    onRepeatChange: (repeat: RepeatOption) -> Unit = {},
+    onCarryOverChange: (carryOver: Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -64,6 +70,14 @@ fun BudgetConstructor(
     val finishPeriodDate by spendsViewModel.finishPeriodDate.observeAsState(Date())
 
     var rawBudget by remember {
+        if (initialAmount != null && !initialAmount.isZero()) {
+            val converted = tryConvertStringToNumber(
+                initialAmount.setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
+            )
+
+            return@remember mutableStateOf(converted.first + converted.second)
+        }
+
         if (budget.isZero()) {
             return@remember mutableStateOf("")
         }
@@ -83,6 +97,10 @@ fun BudgetConstructor(
         mutableStateOf(converted.first + converted.second)
     }
     var budgetCache by remember {
+        if (initialAmount != null && !initialAmount.isZero()) {
+            return@remember mutableStateOf(initialAmount)
+        }
+
         val restBudget =
             (budget - spent - spentFromDailyBudget)
                 .setScale(2, RoundingMode.HALF_UP)
@@ -220,34 +238,100 @@ fun BudgetConstructor(
         }
 
         ButtonRow(
-            icon = painterResource(R.drawable.ic_calendar),
-            text = if (days > 0) {
-                String.format(
-                    pluralStringResource(R.plurals.finish_date_label, days),
-                    prettyDate(dateToValue.value!!, showTime = false, forceShowDate = true),
-                    days,
-                )
-            } else {
-                stringResource(R.string.finish_date_not_select)
-            },
+            icon = painterResource(R.drawable.ic_autorenew),
+            text = stringResource(R.string.repeat_label),
+            endCaption = repeat.label(),
             onClick = {
                 appViewModel.openSheet(PathState(
-                    name = FINISH_DATE_SELECTOR_SHEET,
-                    args = if (days > 0) {
-                        mapOf("initialDate" to dateToValue.value)
-                    } else {
-                        mapOf("initialDate" to null)
-                    },
+                    name = REPEAT_CHOOSER_SHEET,
+                    args = mapOf("repeat" to repeat),
                     callback = { result ->
-                        if (!result.containsKey("finishDate")) return@PathState
+                        if (!result.containsKey("repeat")) return@PathState
 
-                        dateToValue.value = result["finishDate"] as Date
+                        val newRepeat = result["repeat"] as RepeatOption
 
+                        if (newRepeat.isRecurring) {
+                            val (_, finish) = periodBounds(
+                                newRepeat.period,
+                                newRepeat.periodDays,
+                                LocalDate.now(),
+                            )
+
+                            dateToValue.value = finish.toDate()
+                        }
+
+                        onRepeatChange(newRepeat)
                         onChange(budgetCache, dateToValue.value)
                     }
                 ))
             },
         )
+
+        if (repeat.isRecurring) {
+            TextRow(
+                icon = painterResource(R.drawable.ic_calendar),
+                text = stringResource(
+                    R.string.current_period_label,
+                    prettyDate(
+                        if (forceChange) {
+                            periodBounds(repeat.period, repeat.periodDays, LocalDate.now())
+                                .first.toDate()
+                        } else {
+                            startPeriodDate
+                        },
+                        showTime = false,
+                        forceShowDate = true,
+                    ),
+                    prettyDate(
+                        dateToValue.value ?: Date(),
+                        showTime = false,
+                        forceShowDate = true,
+                    ),
+                ),
+            )
+            ButtonRow(
+                icon = painterResource(R.drawable.ic_directions),
+                text = stringResource(R.string.carry_over_label),
+                description = stringResource(R.string.carry_over_description),
+                onClick = { onCarryOverChange(!carryOver) },
+                endContent = {
+                    Switch(
+                        checked = carryOver,
+                        onCheckedChange = { onCarryOverChange(it) },
+                    )
+                },
+            )
+        } else {
+            ButtonRow(
+                icon = painterResource(R.drawable.ic_calendar),
+                text = if (days > 0) {
+                    String.format(
+                        pluralStringResource(R.plurals.finish_date_label, days),
+                        prettyDate(dateToValue.value!!, showTime = false, forceShowDate = true),
+                        days,
+                    )
+                } else {
+                    stringResource(R.string.finish_date_not_select)
+                },
+                onClick = {
+                    appViewModel.openSheet(PathState(
+                        name = FINISH_DATE_SELECTOR_SHEET,
+                        args = if (days > 0) {
+                            mapOf("initialDate" to dateToValue.value)
+                        } else {
+                            mapOf("initialDate" to null)
+                        },
+                        callback = { result ->
+                            if (!result.containsKey("finishDate")) return@PathState
+
+                            dateToValue.value = result["finishDate"] as Date
+
+                            onChange(budgetCache, dateToValue.value)
+                        }
+                    ))
+                },
+            )
+        }
     }
 }
 

@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.danilkinkin.buckwheat.R
 import com.danilkinkin.buckwheat.base.BigIconButton
+import com.danilkinkin.buckwheat.budgets.BudgetSwitcherButton
 import com.danilkinkin.buckwheat.data.AppViewModel
 import com.danilkinkin.buckwheat.data.PathState
 import com.danilkinkin.buckwheat.data.SpendsViewModel
@@ -71,7 +72,7 @@ fun EditorToolbar(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = if (isDebug.value) 6.dp else 20.dp, end = 6.dp, top = 6.dp)
+            .padding(start = 6.dp, end = 6.dp, top = 6.dp)
             .statusBarsPadding(),
     ) {
         if (isDebug.value) {
@@ -80,6 +81,9 @@ fun EditorToolbar(
                 contentDescription = null,
                 onClick = { appViewModel.openSheet(PathState(DEBUG_MENU_SHEET)) },
             )
+        }
+        if (mode != EditMode.EDIT) {
+            BudgetSwitcherButton()
         }
         Spacer(modifier = Modifier.width(4.dp))
         if (mode == EditMode.EDIT) {

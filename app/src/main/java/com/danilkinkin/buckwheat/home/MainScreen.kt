@@ -71,6 +71,10 @@ import com.danilkinkin.buckwheat.ui.colorOnEditor
 import com.danilkinkin.buckwheat.ui.isNightMode
 import com.danilkinkin.buckwheat.util.observeLiveData
 import com.danilkinkin.buckwheat.util.setSystemStyle
+import androidx.compose.ui.platform.LocalContext
+import com.danilkinkin.buckwheat.data.ExtendCurrency
+import com.danilkinkin.buckwheat.util.numberFormat
+import com.danilkinkin.buckwheat.wallet.WALLET_SHEET
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -123,6 +127,27 @@ fun MainScreen(
 
     observeLiveData(spendsViewModel.requireSetBudget) {
         if (it) appViewModel.openSheet(PathState(ON_BOARDING_SHEET))
+    }
+
+    observeLiveData(spendsViewModel.requireConfigureBudget) {
+        if (it) appViewModel.openSheet(PathState(WALLET_SHEET))
+    }
+
+    val context = LocalContext.current
+    observeLiveData(spendsViewModel.finishedPeriodSummary) { summary ->
+        if (summary == null) return@observeLiveData
+
+        val currency = spendsViewModel.currency.value ?: ExtendCurrency.none()
+
+        appViewModel.showSnackbar(
+            message = context.getString(
+                R.string.period_summary_message,
+                numberFormat(context, summary.spent, currency = currency),
+                numberFormat(context, summary.budget, currency = currency),
+            ),
+            duration = SnackbarDuration.Long,
+        )
+        spendsViewModel.dismissFinishedPeriodSummary()
     }
 
     observeLiveData(spendsViewModel.periodFinished) {

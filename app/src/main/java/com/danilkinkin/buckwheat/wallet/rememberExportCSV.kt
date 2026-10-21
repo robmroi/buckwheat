@@ -45,6 +45,7 @@ fun rememberExportCSV(
         })
     }
 
+    val defaultBudgetName = stringResource(R.string.budget_default_name)
     val snackBarExportToCSVSuccess = stringResource(R.string.export_to_csv_success)
     val snackBarExportToCSVFailed = stringResource(R.string.export_to_csv_failed)
 
@@ -81,16 +82,19 @@ fun rememberExportCSV(
 
                 val printer = CSVPrinter(
                     stream?.writer(),
-                    CSVFormat.Builder.create().setHeader("amount", "comment", "commit_time")
+                    CSVFormat.Builder.create().setHeader("amount", "comment", "commit_time", "budget")
                         .build()
                 )
                 val dateFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
+                val budgetName = spendsViewModel.activeBudget.value?.name
+                    ?.ifBlank { null } ?: defaultBudgetName
 
                 spendsViewModel.spends.value!!.forEach { spent ->
                     printer.printRecord(
                         spent.value,
                         spent.comment,
                         spent.date.toLocalDateTime().format(dateFormatter),
+                        budgetName,
                     )
                 }
 
